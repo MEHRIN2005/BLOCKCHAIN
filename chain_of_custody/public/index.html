@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blockchain Chain of Custody</title>
+<style>
+  :root {
+    --bg: #f4f6f9; --card: #ffffff; --text: #1b2430; --muted: #5d6b7c; --line: #dde3ea;
+    --accent: #1f5fbf; --accent-text: #ffffff; --ok-bg: #e4f6ea; --ok: #14803c;
+    --bad-bg: #fde8e8; --bad: #b42318; --warn-bg: #fff4d6; --warn: #8a5a00; --code: #eef2f7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12161c; --card: #1b222b; --text: #e8edf3; --muted: #9aa8b8; --line: #2c3541;
+      --accent: #4c8dff; --accent-text: #0b1220; --ok-bg: #12301f; --ok: #5fd68a;
+      --bad-bg: #3a1717; --bad: #ff8a80; --warn-bg: #3a2e10; --warn: #f5c04d; --code: #232c37;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.45; }
+  header { background: var(--card); border-bottom: 1px solid var(--line); padding: 14px 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 1.15rem; }
+  header p { margin: 2px 0 0; color: var(--muted); font-size: .85rem; }
+  .who { display: flex; align-items: center; gap: 8px; font-size: .9rem; }
+  .who select { font-size: .95rem; }
+  main { max-width: 1200px; margin: 0 auto; padding: 16px; display: grid; grid-template-columns: 340px 1fr; gap: 16px; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 16px; }
+  .card h2 { margin: 0 0 8px; font-size: 1rem; }
+  .hint { color: var(--muted); font-size: .85rem; margin: 0 0 10px; }
+  label { display: block; font-size: .85rem; color: var(--muted); margin: 8px 0 3px; }
+  input[type=text], input[type=number], textarea, select { width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; }
+  textarea { min-height: 64px; resize: vertical; }
+  button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-text); cursor: pointer; margin-top: 10px; }
+  button.secondary { background: transparent; color: var(--accent); }
+  button.small { padding: 4px 10px; margin: 0 4px 0 0; font-size: .82rem; }
+  button.danger { border-color: var(--bad); background: transparent; color: var(--bad); }
+  button:disabled { opacity: .5; cursor: default; }
+  .or { text-align: center; color: var(--muted); font-size: .8rem; margin: 6px 0 0; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 99px; background: var(--code); font-size: .75rem; color: var(--muted); }
+  .ev { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; cursor: pointer; }
+  .ev.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .ev b { display: block; font-size: .92rem; }
+  .ev span { font-size: .8rem; color: var(--muted); }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem; word-break: break-all; background: var(--code); padding: 1px 4px; border-radius: 4px; }
+  dl { display: grid; grid-template-columns: 110px 1fr; gap: 6px 10px; margin: 0; font-size: .88rem; }
+  dt { color: var(--muted); }
+  dd { margin: 0; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tabs button { margin: 0; background: transparent; color: var(--text); border-color: var(--line); }
+  .tabs button.on { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .pane { display: none; }
+  .pane.on { display: block; }
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  th, td { text-align: left; padding: 6px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .scroll { overflow-x: auto; }
+  .banner { padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; font-size: .9rem; }
+  .banner.ok { background: var(--ok-bg); color: var(--ok); }
+  .banner.bad { background: var(--bad-bg); color: var(--bad); }
+  .banner.info { background: var(--warn-bg); color: var(--warn); }
+  .verdict { font-size: 1.1rem; font-weight: 700; padding: 12px; border-radius: 8px; margin-top: 10px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 140px; }
+  .checks label { display: inline-flex; align-items: center; gap: 4px; margin-right: 12px; color: var(--text); }
+  .empty { color: var(--muted); font-size: .88rem; }
+  details summary { cursor: pointer; font-weight: 600; }
+  details ol { padding-left: 18px; font-size: .85rem; margin: 8px 0 0; }
+  #log { max-height: 190px; overflow: auto; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Blockchain-Enhanced Chain of Custody</h1>
+    <p>Prototype of the ICBDS 2025 design on a local Ethereum test chain (Ganache)</p>
+  </div>
+  <div class="who">
+    <label for="me" style="margin:0">Acting as</label>
+    <select id="me"></select>
+    <span class="badge" id="meRole"></span>
+  </div>
+</header>
+
+<main>
+  <aside>
+    <div class="card">
+      <h2>Register evidence</h2>
+      <p class="hint">Stores the file off-chain and writes its SHA-256 hash and storage ID on the blockchain. Only an Investigator can do this.</p>
+      <label for="caseId">Case ID</label>
+      <input type="text" id="caseId" value="CASE-2026-001">
+      <label for="regFile">Evidence file</label>
+      <input type="file" id="regFile">
+      <p class="or">or type some text</p>
+      <textarea id="regText" placeholder="e.g. Disk image of suspect laptop"></textarea>
+      <button id="btnRegister">Register on blockchain</button>
+    </div>
+
+    <div class="card">
+      <h2>Evidence on the chain</h2>
+      <div id="evList"><p class="empty">Nothing registered yet.</p></div>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary>Demo script</summary>
+        <ol>
+          <li>Act as <b>Police</b>, type some text, click Register.</li>
+          <li>Verify tab: same text gives <b>Authentic</b>. Change one letter and it gives <b>Tampered</b>.</li>
+          <li>Transfer tab: Police requests a transfer to the Forensic Lab.</li>
+          <li>Switch to <b>Police</b> and try to approve it. It is rejected: only a supervisor can.</li>
+          <li>Switch to <b>Supervisor</b> and approve. Switch to <b>Forensic Lab</b> and accept.</li>
+          <li>Share tab: the new custodian grants the Court HASH-only access. The Court uses it, but FILE access is denied.</li>
+          <li>History tab shows every step, in order.</li>
+        </ol>
+      </details>
+    </div>
+  </aside>
+
+  <section>
+    <div class="card">
+      <h2>Latest results</h2>
+      <div id="log"><p class="empty">Actions and contract rule checks appear here.</p></div>
+    </div>
+
+    <div class="card" id="detailCard">
+      <h2>Selected evidence</h2>
+      <div id="detail"><p class="empty">Register or select an evidence item.</p></div>
+    </div>
+
+    <div class="card" id="actionCard" style="display:none">
+      <div class="tabs" id="tabs">
+        <button data-tab="verify" class="on">Verify</button>
+        <button data-tab="transfer">Transfer</button>
+        <button data-tab="share">Share</button>
+        <button data-tab="history">History</button>
+      </div>
+
+      <div class="pane on" id="pane-verify">
+        <p class="hint">Hashes the file you provide and compares it with the hash stored on the blockchain. Any change to the file, even one byte, makes the check fail.</p>
+        <label for="verFile">File to check</label>
+        <input type="file" id="verFile">
+        <p class="or">or type text</p>
+        <textarea id="verText" placeholder="Type the same text you registered, then change one letter to see tampering detected"></textarea>
+        <button id="btnVerify">Check against blockchain</button>
+        <div id="verifyResult"></div>
+      </div>
+
+      <div class="pane" id="pane-transfer">
+        <p class="hint">Normal transfer needs three steps: the custodian requests, a supervisor (not the requester) approves, and the receiver accepts. An emergency transfer skips approval but needs a reason and is flagged.</p>
+        <div class="row">
+          <div>
+            <label for="trTo">Transfer to</label>
+            <select id="trTo"></select>
+          </div>
+          <div>
+            <label for="trReason">Reason</label>
+            <input type="text" id="trReason" value="Send to lab for analysis">
+          </div>
+        </div>
+        <button id="btnRequest">Request transfer</button>
+        <button id="btnEmergency" class="secondary">Emergency transfer</button>
+        <h2 style="margin-top:18px">Transfers for this evidence</h2>
+        <div id="transferList"></div>
+      </div>
+
+      <div class="pane" id="pane-share">
+        <p class="hint">The custodian can give another agency limited access: metadata only, hash only, or the file, with an expiry. Each use is logged.</p>
+        <div class="row">
+          <div>
+            <label for="shAgency">Agency</label>
+            <select id="shAgency"></select>
+          </div>
+          <div>
+            <label for="shMinutes">Expires in (minutes)</label>
+            <input type="number" id="shMinutes" value="60" min="1">
+          </div>
+        </div>
+        <label>Scope</label>
+        <div class="checks">
+          <label><input type="checkbox" id="sc1" checked> Metadata</label>
+          <label><input type="checkbox" id="sc2" checked> Hash</label>
+          <label><input type="checkbox" id="sc4"> File</label>
+        </div>
+        <button id="btnGrant">Grant access</button>
+        <h2 style="margin-top:18px">Current grants</h2>
+        <div id="grantList"></div>
+        <h2 style="margin-top:18px">Use access as the selected account</h2>
+        <p class="hint">Pick what you want to access. The contract refuses anything outside the granted scope.</p>
+        <select id="useScope" style="max-width:220px">
+          <option value="1">Metadata</option>
+          <option value="2">Hash</option>
+          <option value="4">File</option>
+        </select>
+        <button id="btnUse" class="secondary">Use access</button>
+      </div>
+
+      <div class="pane" id="pane-history">
+        <p class="hint">The chain of custody: every action on this evidence, in order, recorded by the smart contracts.</p>
+        <div id="history"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var state = { accounts: [], selected: null, evidence: [] };
+  var $ = function (id) { return document.getElementById(id); };
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function me() { return Number($("me").value); }
+  function nameOf(addr) {
+    var a = state.accounts.find(function (x) { return x.address.toLowerCase() === String(addr).toLowerCase(); });
+    if (a) return a.name;
+    if (/^0x0+$/.test(addr)) return "(none)";
+    return String(addr).slice(0, 8) + "…";
+  }
+  function short(h) { h = String(h); return h.length > 20 ? h.slice(0, 10) + "…" + h.slice(-8) : h; }
+  function when(ts) { return new Date(ts * 1000).toLocaleString(); }
+
+  var logLines = [];
+  function say(text, kind) {
+    logLines.unshift({ text: text, kind: kind || "info", at: new Date().toLocaleTimeString() });
+    logLines = logLines.slice(0, 8);
+    $("log").innerHTML = logLines.map(function (l) {
+      return '<div class="banner ' + l.kind + '"><b>' + esc(l.at) + "</b> &nbsp;" + esc(l.text) + "</div>";
+    }).join("");
+  }
+
+  function api(path, body) {
+    var opts = body === undefined ? {} : {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    };
+    return fetch(path, opts).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) throw new Error(j.error || "Request failed");
+      return j;
+    });
+  }
+
+  // Run an action as the selected account; show the contract's answer either way.
+  function act(label, path, body, after) {
+    body.account = me();
+    var who = nameOf(state.accounts[me() - 1].address);
+    return api(path, body).then(function (j) {
+      say(who + ": " + j.message, "ok");
+      return refresh().then(function () { if (after) after(j); });
+    }).catch(function (e) {
+      say("Rejected (" + label + " as " + who + "): " + e.message, "bad");
+    });
+  }
+
+  function readInput(fileEl, textEl) {
+    return new Promise(function (resolve, reject) {
+      var f = fileEl.files && fileEl.files[0];
+      if (f) {
+        var r = new FileReader();
+        r.onload = function () { resolve({ b64: String(r.result).split(",")[1] || "", name: f.name }); };
+        r.onerror = function () { reject(new Error("Could not read the file")); };
+        r.readAsDataURL(f);
+      } else if (textEl.value.length) {
+        var bytes = new TextEncoder().encode(textEl.value);
+        var bin = "";
+        bytes.forEach(function (b) { bin += String.fromCharCode(b); });
+        resolve({ b64: btoa(bin), name: "text-evidence.txt" });
+      } else {
+        reject(new Error("Choose a file or type some text first"));
+      }
+    });
+  }
+
+  function fillSelect(sel, accounts, skipRoleless) {
+    sel.innerHTML = accounts.map(function (a) {
+      return '<option value="' + a.id + '">' + esc(a.name) + " (" + esc(a.role) + ")</option>";
+    }).join("");
+  }
+
+  function renderMe() {
+    var a = state.accounts[me() - 1];
+    $("meRole").textContent = a ? a.role : "";
+  }
+
+  function renderEvidenceList() {
+    if (!state.evidence.length) { $("evList").innerHTML = '<p class="empty">Nothing registered yet.</p>'; return; }
+    $("evList").innerHTML = state.evidence.map(function (e) {
+      return '<div class="ev' + (e.evidenceId === state.selected ? " sel" : "") + '" data-id="' + esc(e.evidenceId) + '">' +
+        "<b>" + esc(e.caseId) + " · " + esc(e.filename) + "</b>" +
+        "<span>Custodian: " + esc(nameOf(e.custodian)) + " · " + e.events + " log entries</span></div>";
+    }).join("");
+  }
+
+  function selectedEvidence() {
+    return state.evidence.find(function (e) { return e.evidenceId === state.selected; });
+  }
+
+  function renderDetail() {
+    var e = selectedEvidence();
+    $("actionCard").style.display = e ? "block" : "none";
+    if (!e) { $("detail").innerHTML = '<p class="empty">Register or select an evidence item.</p>'; return; }
+    $("detail").innerHTML = "<dl>" +
+      "<dt>Case</dt><dd>" + esc(e.caseId) + "</dd>" +
+      "<dt>File</dt><dd>" + esc(e.filename) + "</dd>" +
+      "<dt>Evidence ID</dt><dd><code>" + esc(e.evidenceId) + "</code></dd>" +
+      "<dt>SHA-256 (on-chain)</dt><dd><code>" + esc(e.sha256) + "</code></dd>" +
+      "<dt>Storage ID</dt><dd><code>" + esc(e.cid) + "</code></dd>" +
+      "<dt>Registered by</dt><dd>" + esc(nameOf(e.registeredBy)) + " on " + esc(when(e.registeredAt)) + "</dd>" +
+      "<dt>Current custodian</dt><dd><b>" + esc(nameOf(e.custodian)) + "</b></dd></dl>";
+  }
+
+  function loadHistory() {
+    if (!state.selected) return Promise.resolve();
+    return api("/api/custody?evidenceId=" + state.selected).then(function (j) {
+      $("history").innerHTML = '<div class="scroll"><table><tr><th>#</th><th>Action</th><th>From</th><th>To</th><th>Time</th><th>Note</th></tr>' +
+        j.events.map(function (ev, i) {
+          return "<tr><td>" + (i + 1) + "</td><td>" + esc(ev.action) + "</td><td>" +
+            (/^0x0+$/.test(ev.from) ? "–" : esc(nameOf(ev.from))) + "</td><td>" + esc(nameOf(ev.to)) + "</td><td>" +
+            esc(when(ev.timestamp)) + "</td><td>" + esc(ev.note) + "</td></tr>";
+        }).join("") + "</table></div>";
+    });
+  }
+
+  function loadTransfers() {
+    if (!state.selected) return Promise.resolve();
+    return api("/api/transfers?evidenceId=" + state.selected).then(function (j) {
+      if (!j.transfers.length) { $("transferList").innerHTML = '<p class="empty">No transfers yet.</p>'; return; }
+      $("transferList").innerHTML = '<div class="scroll"><table><tr><th>#</th><th>From → To</th><th>Status</th><th>Reason</th><th>Actions</th></tr>' +
+        j.transfers.map(function (t) {
+          var btns = "";
+          if (t.state === "Requested") btns += '<button class="small" data-tr="approve" data-id="' + t.id + '">Approve</button>';
+          if (t.state === "Approved") btns += '<button class="small" data-tr="accept" data-id="' + t.id + '">Accept</button>';
+          if (t.state === "Requested" || t.state === "Approved") btns += '<button class="small danger" data-tr="cancel" data-id="' + t.id + '">Cancel</button>';
+          return "<tr><td>" + t.id + "</td><td>" + esc(nameOf(t.from)) + " → " + esc(nameOf(t.to)) + "</td><td>" +
+            esc(t.state) + (t.state === "Approved" ? " by " + esc(nameOf(t.approver)) : "") + "</td><td>" + esc(t.reason) + "</td><td>" + btns + "</td></tr>";
+        }).join("") + "</table></div>";
+    });
+  }
+
+  function loadGrants() {
+    if (!state.selected) return Promise.resolve();
+    return api("/api/grants?evidenceId=" + state.selected).then(function (j) {
+      if (!j.grants.length) { $("grantList").innerHTML = '<p class="empty">No access grants yet.</p>'; return; }
+      $("grantList").innerHTML = '<div class="scroll"><table><tr><th>Agency</th><th>Scope</th><th>Expires</th><th>Status</th><th></th></tr>' +
+        j.grants.map(function (g) {
+          var btn = g.status === "Active" ? '<button class="small danger" data-revoke="' + esc(g.agency) + '">Revoke</button>' : "";
+          return "<tr><td>" + esc(nameOf(g.agency)) + "</td><td>" + esc(g.scopeNames.join(", ")) + "</td><td>" +
+            esc(when(g.expiresAt)) + "</td><td>" + esc(g.status) + "</td><td>" + btn + "</td></tr>";
+        }).join("") + "</table></div>";
+    });
+  }
+
+  function refresh() {
+    return api("/api/evidence").then(function (j) {
+      state.evidence = j.evidence;
+      if (!selectedEvidence()) state.selected = state.evidence.length ? state.evidence[state.evidence.length - 1].evidenceId : null;
+      renderEvidenceList();
+      renderDetail();
+      return Promise.all([loadHistory(), loadTransfers(), loadGrants()]);
+    }).catch(function (e) { say("Could not load data: " + e.message, "bad"); });
+  }
+
+  function agencyByAccountId(id) { return state.accounts.find(function (a) { return a.id === Number(id); }); }
+
+  // ---- wiring ----
+  $("me").addEventListener("change", renderMe);
+
+  $("evList").addEventListener("click", function (ev) {
+    var el = ev.target.closest(".ev");
+    if (!el) return;
+    state.selected = el.getAttribute("data-id");
+    $("verifyResult").innerHTML = "";
+    renderEvidenceList(); renderDetail();
+    loadHistory(); loadTransfers(); loadGrants();
+  });
+
+  $("tabs").addEventListener("click", function (ev) {
+    var t = ev.target.getAttribute("data-tab");
+    if (!t) return;
+    Array.prototype.forEach.call($("tabs").children, function (b) { b.classList.toggle("on", b === ev.target); });
+    Array.prototype.forEach.call(document.querySelectorAll(".pane"), function (p) { p.classList.toggle("on", p.id === "pane-" + t); });
+  });
+
+  $("btnRegister").addEventListener("click", function () {
+    readInput($("regFile"), $("regText")).then(function (inp) {
+      return act("register", "/api/register", { caseId: $("caseId").value, filename: inp.name, contentBase64: inp.b64 }, function (j) {
+        state.selected = j.evidenceId;
+        $("regFile").value = ""; $("regText").value = "";
+        return refresh();
+      });
+    }).catch(function (e) { say(e.message, "bad"); });
+  });
+
+  $("btnVerify").addEventListener("click", function () {
+    var e = selectedEvidence();
+    if (!e) return;
+    readInput($("verFile"), $("verText")).then(function (inp) {
+      return api("/api/verify", { evidenceId: e.evidenceId, contentBase64: inp.b64 });
+    }).then(function (j) {
+      $("verifyResult").innerHTML =
+        '<div class="verdict banner ' + (j.authentic ? "ok" : "bad") + '">' +
+        (j.authentic ? "AUTHENTIC: the file matches the hash on the blockchain." : "TAMPERED: the file does NOT match the hash on the blockchain.") + "</div>" +
+        "<dl><dt>Hash of your file</dt><dd><code>" + esc(j.uploadedHash) + "</code></dd>" +
+        "<dt>Hash on-chain</dt><dd><code>" + esc(j.onChainHash) + "</code></dd></dl>";
+      say("Verification result: " + (j.authentic ? "authentic" : "tampered"), j.authentic ? "ok" : "bad");
+    }).catch(function (err) { say(err.message, "bad"); });
+  });
+
+  $("btnRequest").addEventListener("click", function () {
+    act("request transfer", "/api/transfer/request", { evidenceId: state.selected, to: $("trTo").value, reason: $("trReason").value });
+  });
+  $("btnEmergency").addEventListener("click", function () {
+    act("emergency transfer", "/api/transfer/emergency", { evidenceId: state.selected, to: $("trTo").value, reason: $("trReason").value });
+  });
+  $("transferList").addEventListener("click", function (ev) {
+    var kind = ev.target.getAttribute("data-tr");
+    if (!kind) return;
+    act(kind + " transfer", "/api/transfer/" + kind, { transferId: ev.target.getAttribute("data-id") });
+  });
+
+  $("btnGrant").addEventListener("click", function () {
+    var scope = ($("sc1").checked ? 1 : 0) + ($("sc2").checked ? 2 : 0) + ($("sc4").checked ? 4 : 0);
+    act("grant access", "/api/share/grant", {
+      evidenceId: state.selected, agency: $("shAgency").value, scope: scope, minutes: $("shMinutes").value
+    });
+  });
+  $("grantList").addEventListener("click", function (ev) {
+    var addr = ev.target.getAttribute("data-revoke");
+    if (!addr) return;
+    var a = state.accounts.find(function (x) { return x.address === addr; });
+    act("revoke access", "/api/share/revoke", { evidenceId: state.selected, agency: a.id });
+  });
+  $("btnUse").addEventListener("click", function () {
+    act("use access", "/api/share/use", { evidenceId: state.selected, scope: $("useScope").value });
+  });
+
+  // ---- start ----
+  api("/api/accounts").then(function (j) {
+    state.accounts = j.accounts;
+    fillSelect($("me"), j.accounts);
+    fillSelect($("trTo"), j.accounts.filter(function (a) { return a.role === "Investigator"; }));
+    fillSelect($("shAgency"), j.accounts);
+    $("trTo").value = "2";
+    $("shAgency").value = "3";
+    renderMe();
+    return refresh();
+  }).catch(function (e) { say("Cannot reach the server: " + e.message, "bad"); });
+})();
+</script>
+</body>
+</html>

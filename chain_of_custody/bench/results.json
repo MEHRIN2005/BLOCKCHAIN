@@ -1,0 +1,20 @@
+{
+  "registration": {
+    "runs": 50,
+    "meanLatencyMs": 330.92,
+    "p95LatencyMs": 351.35,
+    "meanGas": 265687
+  },
+  "dualApprovalTransfer": {
+    "runs": 20,
+    "meanLatencyMs": 1112.88,
+    "p95LatencyMs": 1180.56,
+    "meanTotalGas": 497804
+  },
+  "throughput": {
+    "transactions": 200,
+    "signers": 20,
+    "seconds": 9.28,
+    "txPerSecond": 21.55
+  }
+}

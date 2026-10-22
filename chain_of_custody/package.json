@@ -1,0 +1,20 @@
+{
+  "name": "blockchain-chain-of-custody",
+  "version": "1.0.0",
+  "description": "Implementation of the ICBDS 2025 blockchain chain-of-custody design on Ethereum/Ganache",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test test/lifecycle.test.js",
+    "bench": "node bench/benchmark.js",
+    "ui": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ethers": "^6.17.0",
+    "ganache": "^7.9.2",
+    "solc": "^0.8.26"
+  },
+  "private": true
+}
